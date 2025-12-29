@@ -10,7 +10,7 @@ app = FastAPI(
 
 
 @app.get("/scrape")
-def fetch_jobs(keywords: str = "Software Engineer", location: str = "Remote", results: int = 50, hours_old: int = 24):
+def fetch_jobs(keywords: str = "Software Engineer,React,React Native", location: str = "Remote", results: int = 50, hours_old: int = 24):
     """
     Scrape jobs from LinkedIn and Indeed.
     
