@@ -75,13 +75,6 @@ CUSTOM_SITES = [
         "item_url": "a"
     },
     {
-        "name": "naukrigulf",
-        "url": "https://www.naukrigulf.com/jobs-in-lebanon?keywords={keyword}",
-        "list_selector": "div.srp-listing > div.tuple-wrap.opaque-true",
-        "list_item_selector": "div.ng-box.srp-tuple",
-        "item_url": "a"
-    },
-    {
         "name": "bayt",
         "url": "https://www.bayt.com/en/lebanon/jobs/jobs-in-beirut/?q={keyword}",
         "list_selector": "div#results_inner_card > ul",
