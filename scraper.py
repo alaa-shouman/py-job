@@ -87,7 +87,7 @@ def scrape_jobs_by_keyword(
     """
     
     if site_names is None:
-        site_names = ["linkedin", "indeed","glassdoor"]
+        site_names = ["linkedin", "indeed","glassdoor", "zip_recruiter", "google"]
     
     # Validate location
     is_valid, normalized_location = validate_location(location)
