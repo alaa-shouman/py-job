@@ -1,9 +1,6 @@
 import json
 import sys
-import urllib.parse
-from typing import List, Optional, Dict, Any
-import requests
-from bs4 import BeautifulSoup
+from typing import List, Optional
 from jobspy import scrape_jobs
 import pandas as pd
 import numpy as np
@@ -30,65 +27,6 @@ LOCATION_ALIASES = {
     "remote": "Remote",
     "worldwide": "Worldwide",
 }
-
-CUSTOM_SITES = [
-    {
-        "name": "dice",
-        "url": "https://www.dice.com/jobs?filters.postedDate=THREE&filters.workplaceTypes=Remote&q={keyword}",
-        "list_selector": "div[role=list]",
-        "list_item_selector": "div[role=listitem]",
-        "item_url": "a"
-    },
-    {
-        "name": "WWR",
-        "url": "https://weworkremotely.com/remote-jobs/search?term={keyword}&categories%5B%5D=2&categories%5B%5D=17&categories%5B%5D=18",
-        "list_selector": "section#category-2 > article > ul",
-        "list_item_selector": "li",
-        "item_url": "a.listing-link--unlocked"
-    },
-    {
-        "name": "remoteOk",
-        "url": "https://remoteok.com/remote-{keyword}-jobs",
-        "list_selector": "table#jobsboard > tbody",
-        "list_item_selector": "tr.job",
-        "item_url": "a.preventLink"
-    },
-    {
-        "name": "meetfrank",
-        "url": "https://meetfrank.com/fully-remote-software-engineering-jobs",
-        "list_selector": "div.dg.di",
-        "list_item_selector": "div.hY",
-        "item_url": "a"
-    },
-    {
-        "name": "workable",
-        "url": "https://jobs.workable.com/search?location=Lebanon&day_range=7&query={keyword}",
-        "list_selector": "ul.jobsList__list-container--2L__X",
-        "list_item_selector": "li",
-        "item_url": "a"
-    },
-    {
-        "name": "remocate",
-        "url": "https://www.remocate.app/",
-        "list_selector": "div.jobs_section > div.padding-global > div.container-large > div.jobs_wr > div.w-dyn-list > div.board-list",
-        "list_item_selector": "div.w-dyn-item",
-        "item_url": "a"
-    },
-    {
-        "name": "bayt",
-        "url": "https://www.bayt.com/en/lebanon/jobs/jobs-in-beirut/?q={keyword}",
-        "list_selector": "div#results_inner_card > ul",
-        "list_item_selector": "li",
-        "item_url": "a"
-    },
-    {
-        "name": "hire lebanese",
-        "url": "https://www.hirelebanese.com/searchresults.aspx?order=date&keywords={keyword}&category=10&country=117,241,258,259,260",
-        "list_selector": "table.ListBorder",
-        "list_item_selector": "tr > td > div.panel > div.panel-heading",
-        "item_url": "div.panel-title > h4 > a"
-    }
-]
 
 
 def validate_location(location: str) -> tuple[bool, str]:
@@ -125,122 +63,6 @@ def clean_nan_values(data):
     elif pd.isna(data):
         return None
     return data
-
-
-def fetch_description(url: str) -> Optional[str]:
-    """
-    Fetch job description from a URL if missing.
-    """
-    if not url:
-        return None
-        
-    try:
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-        }
-        response = requests.get(url, headers=headers, timeout=10)
-        if response.status_code == 200:
-            soup = BeautifulSoup(response.text, 'html.parser')
-            
-            # Try common description containers
-            # LinkedIn public job page
-            desc = soup.find('div', {'class': 'show-more-less-html__markup'})
-            if desc:
-                return desc.get_text(strip=True)
-                
-            # Generic fallback: look for common description classes or just return body text
-            for class_name in ['job-description', 'description', 'details', 'content']:
-                desc = soup.find(class_=lambda x: x and class_name in x.lower())
-                if desc:
-                    return desc.get_text(strip=True)
-            
-            return None
-    except Exception as e:
-        print(f"Error fetching description for {url}: {e}", file=sys.stderr)
-        return None
-
-
-def scrape_custom_sites(keyword: str) -> List[Dict[str, Any]]:
-    """
-    Scrape jobs from custom sites defined in CUSTOM_SITES.
-    """
-    all_jobs = []
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-    }
-    
-    for site in CUSTOM_SITES:
-        try:
-            # Format URL with keyword if placeholder exists, otherwise use as is
-            url = site["url"]
-            if "{keyword}" in url:
-                url = url.format(keyword=urllib.parse.quote(keyword))
-            
-            print(f"Scraping {site['name']}: {url}", file=sys.stderr)
-            
-            response = requests.get(url, headers=headers, timeout=15)
-            if response.status_code != 200:
-                print(f"Failed to fetch {site['name']}: {response.status_code}", file=sys.stderr)
-                continue
-                
-            soup = BeautifulSoup(response.text, 'html.parser')
-            
-            # Find list container
-            if site.get("list_selector"):
-                container = soup.select_one(site["list_selector"])
-                if not container:
-                    # Try searching in the whole document if list selector fails
-                    container = soup
-            else:
-                container = soup
-                
-            # Find items
-            items = container.select(site["list_item_selector"])
-            print(f"Found {len(items)} items on {site['name']}", file=sys.stderr)
-            
-            for item in items:
-                try:
-                    # Extract link
-                    link_elem = item.select_one(site["item_url"])
-                    if not link_elem:
-                        continue
-                        
-                    job_url = link_elem.get('href')
-                    if job_url and not job_url.startswith('http'):
-                        # Handle relative URLs
-                        base_url = "/".join(url.split('/')[:3])
-                        if job_url.startswith('/'):
-                            job_url = base_url + job_url
-                        else:
-                            job_url = base_url + '/' + job_url
-                            
-                    title = link_elem.get_text(strip=True)
-                    
-                    # Basic job object
-                    job = {
-                        "site": site["name"],
-                        "title": title,
-                        "job_url": job_url,
-                        "company": "Unknown", # Hard to extract generically without more selectors
-                        "location": "Remote", # Defaulting to Remote as per context
-                        "description": None
-                    }
-                    
-                    # Try to find company/location if possible (heuristic)
-                    # This is very rough and might need site-specific tuning
-                    text_content = item.get_text(" | ", strip=True)
-                    job["raw_text"] = text_content
-                    
-                    all_jobs.append(job)
-                    
-                except Exception as e:
-                    continue
-                    
-        except Exception as e:
-            print(f"Error scraping {site['name']}: {e}", file=sys.stderr)
-            continue
-            
-    return all_jobs
 
 
 def scrape_jobs_by_keyword(
@@ -284,10 +106,6 @@ def scrape_jobs_by_keyword(
     all_jobs = []
     
     for keyword in keywords:
-        # Scrape custom sites first
-        custom_jobs = scrape_custom_sites(keyword)
-        all_jobs.extend(custom_jobs)
-        
         try:
             print(f"Scraping jobs for keyword: {keyword}", file=sys.stderr)
             
@@ -309,18 +127,10 @@ def scrape_jobs_by_keyword(
                 # Clean any remaining NaN values
                 jobs_list = [clean_nan_values(job) for job in jobs_list]
                 
-                # Fix missing descriptions (especially for LinkedIn)
-                for job in jobs_list:
-                    if not job.get("description") and job.get("job_url"):
-                        # Only fetch if it's LinkedIn or if description is strictly required
-                        if "linkedin" in str(job.get("site", "")).lower():
-                            print(f"Fetching missing description for {job.get('title')}...", file=sys.stderr)
-                            job["description"] = fetch_description(job["job_url"])
-                
                 all_jobs.extend(jobs_list)
-                print(f"Found {len(jobs_list)} jobs for '{keyword}' via jobspy", file=sys.stderr)
+                print(f"Found {len(jobs_list)} jobs for '{keyword}'", file=sys.stderr)
             else:
-                print(f"No jobs found for '{keyword}' via jobspy", file=sys.stderr)
+                print(f"No jobs found for '{keyword}'", file=sys.stderr)
         
         except ValueError as e:
             error_msg = str(e)
