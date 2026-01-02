@@ -5,20 +5,13 @@ from jobspy import scrape_jobs
 import pandas as pd
 import numpy as np
 
-# Valid countries according to python-jobspy
+# Valid countries according to python-jobspy - filtered for high salary countries accessible to Lebanese citizens
 VALID_COUNTRIES = {
-    "argentina", "australia", "austria", "bahrain", "bangladesh", "belgium", 
-    "bulgaria", "brazil", "canada", "chile", "china", "colombia", "costa rica", 
-    "croatia", "cyprus", "czech republic", "czechia", "denmark", "ecuador", 
-    "egypt", "estonia", "finland", "france", "germany", "greece", "hong kong", 
-    "hungary", "india", "indonesia", "ireland", "israel", "italy", "japan", 
-    "kuwait", "latvia", "lithuania", "luxembourg", "malaysia", "malta", "mexico", 
-    "morocco", "netherlands", "new zealand", "nigeria", "norway", "oman", 
-    "pakistan", "panama", "peru", "philippines", "poland", "portugal", "qatar", 
-    "romania", "saudi arabia", "singapore", "slovakia", "slovenia", "south africa", 
-    "south korea", "spain", "sweden", "switzerland", "taiwan", "thailand", 
-    "türkiye", "turkey", "ukraine", "united arab emirates", "uk", "united kingdom", 
-    "usa", "us", "united states", "uruguay", "venezuela", "vietnam", "usa/ca", 
+    "australia", "austria", "bahrain", "belgium", "canada", "denmark", "finland", 
+    "france", "germany", "hong kong", "ireland", "japan", "kuwait", "lebanon", 
+    "luxembourg", "netherlands", "new zealand", "norway", "oman", "qatar", 
+    "saudi arabia", "singapore", "south korea", "sweden", "switzerland", "taiwan", 
+    "uk", "united kingdom", "usa", "us", "united states", "united arab emirates", 
     "worldwide"
 }
 
@@ -41,8 +34,8 @@ def validate_location(location: str) -> tuple[bool, str]:
         return True, location_lower.capitalize()
     
     # Check against valid countries
-    # if location_lower in VALID_COUNTRIES:
-    #     return True, location
+    if location_lower in VALID_COUNTRIES:
+        return True, location
     
     return False, location
 
@@ -72,19 +65,7 @@ def scrape_jobs_by_keyword(
     hours_old: int = 24,
     site_names: Optional[List[str]] = None
 ) -> dict:
-    """
-    Scrape jobs from LinkedIn and Indeed based on keywords.
-    
-    Args:
-        keywords: List of job keywords to search for (e.g., ["Software Engineer", "Python Developer"])
-        location: Job location filter (default: "Remote")
-        results_wanted: Number of results to fetch per keyword (default: 50)
-        hours_old: Filter jobs posted within this many hours (default: 24)
-        site_names: List of job sites to scrape (default: ["linkedin", "indeed"])
-    
-    Returns:
-        dict: Contains jobs list with all job details, count, and metadata
-    """
+
     
     if site_names is None:
         site_names = ["linkedin", "indeed","glassdoor", "zip_recruiter", "google"]
