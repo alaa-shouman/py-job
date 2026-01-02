@@ -13,7 +13,7 @@ app = FastAPI(
 def fetch_jobs(keywords: str = "Software Engineer,React,React Native", location: str = "Remote", results: int = 50, hours_old: int = 48):
 
     keywords_list = [k.strip() for k in keywords.split(",")]
-        result = scrape_jobs_by_keyword(
+    result = scrape_jobs_by_keyword(
         keywords=keywords_list,
         location=location,
         results_wanted=results,
